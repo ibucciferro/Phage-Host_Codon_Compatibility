@@ -19,7 +19,17 @@ j = 'Bacteria.txt'
 parse(i)
 parse(j)
 
-#create a definition to take the parsed file from the Phage, split the codons into 
+#create a definition to get the Key value for the dictionary
+def GetKey(val):
+   for key, value in dictA.items():
+      if val == value:
+         return key
+      return "key doesn't exist"
 
+#create a definition to take the parsed file from the Phage,
+#take each gene and 
+def phageDict(phageGeneList):
+    for gene in phageGeneList:
+        
 
 
