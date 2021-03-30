@@ -35,17 +35,37 @@ def parseFasta(file_path):
     return final_genes
 
 
-#create a definition to get the Key value for the dictionary
-def GetKey(val):
-   for key, value in dictA.items():
-      if val == value:
-         return key
-      return "key doesn't exist"
-
 #create a definition to take the parsed file from the Phage,
-#take each gene and
+#and pull the coding sequence from the gene before breaking it into a list
+#of codons
+def phageCDS(phageGeneList):
+    for gene in phageGeneList:
+        codingseq = phageGeneList.get(gene)
+        #create a codon list with each of the codons in the gene
+        codonlist = [codingseq[i:i+3] for i in range(0, len(codingseq), 3)]
+        for item in codonlist:
+            #loop through the codon list and add them to a dictionary??
+            #Work with Feras on this part!
+    return
+
+# create a definition to get the Key value for the dictionary
+def GetKey(val):
+    for key, value in dictA.items():
+        if val == value:
+            return key
+        return "key doesn't exist"
+
+# create a definition to take the parsed file from the Phage,
+# take each gene and
 def phageDict(phageGeneList):
     for gene in phageGeneList:
+
+
+# Test
+i = 'Phage.txt'
+phageGenes = parse(i)
+print(phageCDS(phageGenes))
+
 
 
 
