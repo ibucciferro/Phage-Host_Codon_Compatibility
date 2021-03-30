@@ -19,5 +19,7 @@ j = 'Bacteria.txt'
 parse(i)
 parse(j)
 
+#create a definition to take the parsed file from the Phage, split the codons into 
+
 
 
