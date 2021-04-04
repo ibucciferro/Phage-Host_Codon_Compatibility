@@ -3,16 +3,15 @@ import pandas
 import os
 import subprocess
 
-cwd = '/Users/eliascrum/Programs/PythonProjects/COMP483/PHCC'
+cwd = os.getcwd()
 ## Uses DIAMOND on the database called testDB that contains a database assembled from the identical protein groups NCBI database of the
 ## 40 highly expressed genes in bacteria. Outputs a file called matches with the sequence title, bitscore, and query sequence id. K is specified to avoid redundancy and get
 ## the top hit for each query. Diamond has a binary in the parent working directory in this application. Diamond could be installed to avoid this change in directory.
 
 def _get_hegs(file):
     os.chdir(cwd)
-    subprocess.call(
-        ["./diamond", "blastx", "-d", "testDB", "-q", cwd + "/" + file, "-o", cwd + "/matches", "-f",
-         "6", "stitle", "bitscore", "qseqid", "-k", "1"])
+    os.system("./diamond makedb --in protein_database.fasta -d dmndDB")
+    os.system('./diamond -d dmndDB.dmnd -q %s -out /matches -f 6 stitle bitscore qseqid' % file)
 
 
 _get_hegs('CP014272.fasta')
