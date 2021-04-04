@@ -106,7 +106,7 @@ def bacteriaCodons(bacteriaGeneDict):
     [of.write('%s:%d\t' % (a, hegDict[a])) for a in hegDict]
 
 
-# Test
+# Test (Phage Text File)
 i = 'PCPhage.txt'
 phageCodons(parseFasta(i))
 bacteriaCodons(parseFasta('HEGS.fasta'))
