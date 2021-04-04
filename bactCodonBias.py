@@ -1,18 +1,20 @@
 from Bio import SeqIO
 import pandas
 import os
-
 cwd = os.getcwd()
 
 '''
-Uses DIAMOND to run a local BLASTx on the database created from the protein_db.fasta file
-(a file assembled from the identical protein groups (IPG) NCBI database of the 40 highly expressed genes in bacteria). 
+1)  Uses DIAMOND to run a local BLASTx on the database created from the protein_db.fasta file
+        (for more info about the protein_db.fasta file see the git repo wiki)
+    
+    Outputs a file named matches : sequence title, bitscore, query sequence id
+        K is specified to avoid redundancy and get the top hit for each query
+        Diamond runs via a binary in this application
+2)  Trims the number of HEG matches from the protein_db.fasta to 40 (if possible)
 
-Outputs a file called matches with the sequence title, bitscore, and query sequence id. 
-
-K is specified to avoid redundancy and get the top hit for each query. 
-Diamond runs via a binary in this application.
+    Outputs a file named HEGs.fasta : : sequenceID, sequence
 '''
+
 
 def _get_hegs(file):
     os.chdir(cwd)
