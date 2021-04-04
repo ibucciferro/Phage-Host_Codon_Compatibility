@@ -15,9 +15,11 @@ cwd = os.getcwd()
     Outputs a file named HEGs.fasta : : sequenceID, sequence
 '''
 
-
+# If diamond binary from repo does not work, run commands commented below
 def _get_hegs(file):
     os.chdir(cwd)
+    #os.system('wget http://github.com/bbuchfink/diamond/releases/download/v0.9.24/diamond-linux64.tar.gz')
+    #os.system('tar xzf diamond-linux64.tar.gz')
     os.system("./diamond makedb --in protein_database.fasta -d dmndDB")
     os.system('./diamond blastx -d dmndDB.dmnd -q %s -o matches -f 6 stitle bitscore qseqid -p 1 -k 1' % file)
 
