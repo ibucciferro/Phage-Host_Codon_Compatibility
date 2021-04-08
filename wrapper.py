@@ -118,9 +118,12 @@ def phageCodons(phageGeneDict):
         freshdict = codonsDict.copy()
 
         for c in sseq:
-            curr = freshdict[c]
-            curr += 1
-            freshdict[c] = curr
+            try:
+                curr = freshdict[c]
+                curr += 1
+                freshdict[c] = curr
+            except:
+                freshdict[c] = 1
 
         [of.write('%s:%d\t' % (a, freshdict[a])) for a in freshdict]
         of.write('\n')
@@ -217,9 +220,12 @@ def bacteriaCodons(bacteriaGeneDict):
         bseq = bacteriaGeneDict[heg]
         bsseq = [bseq[b:b + 3] for b in range(0, len(bseq), 3)]
         for q in bsseq:
-            bcurr = hegDict[q]
-            bcurr += 1
-            hegDict[q] = bcurr
+            try:
+                bcurr = hegDict[q]
+                bcurr += 1
+                hegDict[q] = bcurr
+            except:
+                hegDict[q] = 1
 
     of.write(f[:10] + '\n')
     [of.write('%s:%d\t' % (a, hegDict[a])) for a in hegDict]
