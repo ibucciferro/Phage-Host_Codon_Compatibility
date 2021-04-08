@@ -8,7 +8,7 @@ Repo for Phage-Host Codon Compatibility Pipeline
 
 2. Navigate to the directory containing the the downloaded repo files
 
-3. Execute the command: python3 pipeline.py -s XXX -q XXX
+3. Execute the command: python3 wrapper.py -s XXX -q XXX
         
         Arguments:
         
