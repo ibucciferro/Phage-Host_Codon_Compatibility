@@ -40,10 +40,16 @@ def getFasta(accession):
 
         inSeq = cwd + '/' + accession + '.fasta'
         getSeq = open(inSeq, 'w')
+        c = 1
         for rec in record.features:  # iterate through list of features
             if rec.type == "CDS":
-                getSeq.write(">" + str(record.id) + "\n")  # gene IDs
-                getSeq.write(str(rec.extract(record.seq)) + "\n")  # gene sequence
+                try:
+                    getSeq.write(">" + str(rec.qualifiers['protein_id'])[2:-2] + "\n")  # protein IDs
+                    getSeq.write(str(rec.extract(record.seq)) + "\n")  # gene sequence
+                except:
+                    getSeq.write(">" + str(record.id) + '.' + str(c) + "\n")  # protein IDs
+                    getSeq.write(str(rec.extract(record.seq)) + "\n")  # gene sequence
+                    c += 1
         getSeq.close()
         return inSeq
     except:
@@ -51,15 +57,36 @@ def getFasta(accession):
 
 
 # Opens fasta CDS files, parses them, returns a dictionary {geneID: sequence}
-def parseFasta(file_path):
+def parseAccessionFasta(file_path):
     f = open(file_path, 'r')
     fs = f.read().strip().split('>')
     final_genes = {}
     for i in fs[1:]:
-        si = i.split(' ')
+        si = i.rstrip().split('\n')
+        final_genes[si[0]] = si[1]
+    return final_genes
+
+
+def parseLocalFasta(file_path):
+    f = open(file_path, 'r')
+    fs = f.read().strip().split('>')
+    final_genes = {}
+    for i in fs[1:]:
+        si = i.rstrip().split(' ')
         for comp in si:
             if 'gbkey' in comp:
-                final_genes[si[0][4:]] = comp[12:].replace('\n', '')
+                final_genes[si[0]] = comp[12:].replace('\n', '')
+    return final_genes
+
+
+def parseHEGFasta(file_path):
+    f = open(file_path, 'r')
+    fs = f.read().strip().split('>')
+    final_genes = {}
+    for i in fs[1:]:
+        si = i.rstrip().split('.')
+        for comp in si:
+            final_genes[si[0] + '.1'] = comp[2:].replace('\n', '')
     return final_genes
 
 
@@ -100,18 +127,27 @@ def phageCodons(phageGeneDict):
 
 
 # Driver Code (Phage)
-ya = getFasta(phage)
-if 'Not a' in ya and '/' in phage:
-    phageCodons(parseFasta(phage))
-elif 'Not a' in ya:
+print("Fetching the %s's CDS..." % phage)
+yap = getFasta(phage)
+if 'Not a' in yap and '/' in phage:
+    phagedict = parseLocalFasta(phage)
+elif 'Not a' in yap:
     try:
-        parseFasta(phage)
+        phagedict = parseLocalFasta(phage)
     except:
-        print("Not a valid accession or input file format")
+        print("Not a valid phage accession or input file")
 else:
-    phageCodons(parseFasta(ya))
+    phagedict = parseAccessionFasta(yap)
+
+try:
+    phageCodons(phagedict)
+    print("Success, the phage codon frequencies are within phageGeneCodons.txt")
+except:
+    print("problem :(")
+
 
 #--------------------------------------------------------------------------------------------------
+
 
 '''
 1)  Uses DIAMOND to run a local BLASTx on the database created from the protein_db.fasta file
@@ -128,13 +164,13 @@ else:
 # Run the Diamond binary using wget functions below
 def _get_hegs(file):
     os.chdir(cwd)
-    os.system('wget http://github.com/bbuchfink/diamond/releases/download/v0.9.24/diamond-linux64.tar.gz')
-    os.system('tar xzf diamond-linux64.tar.gz')
-    os.system("./diamond makedb --in protein_database.fasta -d dmndDB")
-    os.system('./diamond blastx -d dmndDB.dmnd -q %s -o matches -f 6 stitle bitscore qseqid -p 1 -k 1' % file)
+    #os.system('wget http://github.com/bbuchfink/diamond/releases/download/v0.9.24/diamond-linux64.tar.gz')
+    #os.system('tar xzf diamond-linux64.tar.gz')
+    os.system("nohup ./diamond makedb --in protein_database.fasta -d dmndDB")
+    os.system('nohup ./diamond blastx -d dmndDB.dmnd -q %s -o matches -f 6 stitle bitscore qtitle -p 1 -k 1' % file)
 
     def _get_hegs_to_forty():
-        df = pandas.read_table("matches", names=["Subject", "Bit", "SeqID"], skipinitialspace=True)
+        df = pandas.read_table("matches", names=["Subject", "Bit", "Query"], skipinitialspace=True)
         df = df.replace('\[.*\]', '', regex=True)
         df["Subject"] = df["Subject"].str.strip()
         df["Subject"] = df["Subject"].apply(lambda x: ' '.join(x.split(' ')[1:]))
@@ -142,7 +178,7 @@ def _get_hegs(file):
         df = df.replace("elongation factor ef-2", "elongation factor g")
         df2 = df.sort_values(["Subject", "Bit"], ascending=[True, False])
         df2 = df2.loc[df2.groupby('Subject')["Bit"].idxmax()].reset_index(drop=True)
-        items = df2.SeqID.unique()
+        items = df2.Query.unique()
         newSeqs = []
         for seq_record in SeqIO.parse(file, "fasta"):
             if seq_record.id in items:
@@ -186,21 +222,23 @@ def bacteriaCodons(bacteriaGeneDict):
     of.write(f[:10] + '\n')
     [of.write('%s:%d\t' % (a, hegDict[a])) for a in hegDict]
 
-        
+
 #Driver Code (Bacteria)
-bacteria = '/Users/eliascrum/Programs/PythonProjects/COMP483/PHCC/J02459.fasta'
+print("Fetching the bacteria's CDS...")
 yab = getFasta(bacteria)
 if 'Not a' in yab and '/' in bacteria:
-    hegs = _get_hegs(bacteria)
+    _get_hegs(bacteria)
 elif 'Not a' in yab:
     try:
-        hegs = _get_hegs(bacteria)
+        _get_hegs(bacteria)
     except:
         print("Not a valid accession or input file format")
 else:
-    hegs = _get_hegs(yab)
+    _get_hegs(yab)
 
 try:
-    bacteriaCodons(hegs)
+    bacteriaCodons(parseHEGFasta('HEGS.fasta'))
+    print("Success, the bacterial codon frequencies are within bacteriaHEGCodons.txt")
 except:
     print("problem :(")
+
