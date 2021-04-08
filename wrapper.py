@@ -164,8 +164,10 @@ except:
 # Run the Diamond binary using wget functions below
 def _get_hegs(file):
     os.chdir(cwd)
-    #os.system('wget http://github.com/bbuchfink/diamond/releases/download/v0.9.24/diamond-linux64.tar.gz')
-    #os.system('tar xzf diamond-linux64.tar.gz')
+    currdir = os.listdir()
+    if 'diamond' not in currdir:
+        os.system('wget http://github.com/bbuchfink/diamond/releases/download/v0.9.24/diamond-linux64.tar.gz')
+        os.system('tar xzf diamond-linux64.tar.gz')
     os.system("nohup ./diamond makedb --in protein_database.fasta -d dmndDB")
     os.system('nohup ./diamond blastx -d dmndDB.dmnd -q %s -o matches -f 6 stitle bitscore qtitle -p 1 -k 1' % file)
 
