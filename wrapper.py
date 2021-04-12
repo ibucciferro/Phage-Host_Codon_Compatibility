@@ -322,7 +322,7 @@ def readPhageCodonFeqs(phagef):
 # Makes the pearson correlation calculations using scipy 
 def calculation(bcodons, bname, pcodons, pgenes):
     out = open('phage_host_codon_correlation.txt', 'w')
-    out.write('%s\tphage accession\n' % bname)
+    out.write('%s\t%s\n' % (bname, phage))
 
     def genes():
         for gs in range(len(pcodons)-1):
