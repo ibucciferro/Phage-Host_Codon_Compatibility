@@ -348,7 +348,7 @@ def calculation(bcodons, bname, pcodons, pgenes):
     genes()
 
 bact, bnums = readBactCodonFeqs('bacteriaHEGCodons.txt')
-phage_genes, pnums = readPhageCodonFeqs('phageCodons.txt')
+phage_genes, pnums = readPhageCodonFeqs('phageGeneCodons.txt')
 calculation(bnums, bact, pnums, phage_genes)
 
 print("All results can be found in a file named 'phage_host_codon_correlation.txt':)")
