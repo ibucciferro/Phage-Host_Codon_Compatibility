@@ -2,6 +2,7 @@ from Bio import SeqIO
 import pandas
 import os
 import argparse
+from scipy import stats
 from Bio import Entrez, SeqIO
 Entrez.email = "ecrum@luc.edu"
 
