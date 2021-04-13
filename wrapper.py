@@ -1,19 +1,18 @@
-from Bio import SeqIO
 import pandas
 import os
 import argparse
-from scipy import stats
 from Bio import Entrez, SeqIO
-Entrez.email = "ecrum@luc.edu"
+from scipy import stats
 
+Entrez.email = "ecrum@luc.edu"
 
 # supply the arguments providing the bacterial (-s flag) and phage (-q flag) genomes for the pipeline
 phcc = argparse.ArgumentParser(description='Use GenBank Accession (-a) or Local File (-l)')
 phcc.add_argument('-s', '--subject', nargs='?', default='CP014272.1',
-                 help='"-s" flag specifies the GenBank accession or local CDS file of the bacteria to be used.')
+                  help='"-s" flag specifies the GenBank accession or local CDS file of the bacteria to be used.')
 
 phcc.add_argument('-q', '--query', nargs='?', default='J02459.1',
-                 help='"-q" flag specifies the GenBank accession or local CDS file of the phage to be used.')
+                  help='"-q" flag specifies the GenBank accession or local CDS file of the phage to be used.')
 
 args = phcc.parse_args()
 bacteria = vars(args)['subject']
@@ -24,13 +23,14 @@ print("Using %s for the phage input" % phage)
 # Keep track of current directory
 cwd = os.getcwd()
 
-#-----------------------------------------------------------
+# -----------------------------------------------------------
 
 '''
 0) (optional) Fetches CDS fasta sequence from a provided accession
 1) Parses inputted CDS fasta file and returns {geneID: sequence}
 2) Determines codon frequency for each phage gene and writes output to phageGeneCodons.txt file
 '''
+
 
 # Creates a fasta CDS file from a provided genbank accession via the Entrez database
 def getFasta(accession):
@@ -149,14 +149,13 @@ try:
 except:
     print("problem :(")
 
-
-#--------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 
 
 '''
 1)  Uses DIAMOND to run a local BLASTx on the database created from the protein_db.fasta file
         (for more info about the protein_db.fasta file see the git repo wiki)
-    
+
     Outputs a file named matches : sequence title, bitscore, query sequence id
         K is specified to avoid redundancy and get the top hit for each query
         Diamond runs via a binary in this application
@@ -165,13 +164,16 @@ except:
     Outputs a file named HEGs.fasta : : sequenceID, sequence
 '''
 
+
 # Run the Diamond binary using wget functions below
 def _get_hegs(file):
     os.chdir(cwd)
     currdir = os.listdir()
     if 'diamond' not in currdir:
-        os.system('wget http://github.com/bbuchfink/diamond/releases/download/v0.9.24/diamond-linux64.tar.gz')
-        os.system('tar xzf diamond-linux64.tar.gz')
+        print('\nDownloading DIAMOND:')
+        os.system('nohup wget http://github.com/bbuchfink/diamond/releases/download/v0.9.24/diamond-linux64.tar.gz')
+        os.system('nohup tar xzf diamond-linux64.tar.gz')
+    print('\nRunning DIAMOND:')
     os.system("nohup ./diamond makedb --in protein_database.fasta -d dmndDB")
     os.system('nohup ./diamond blastx -d dmndDB.dmnd -q %s -o matches -f 6 stitle bitscore qtitle -p 1 -k 1' % file)
 
@@ -194,7 +196,9 @@ def _get_hegs(file):
         with open("HEGS.fasta", "w") as handle:
             SeqIO.write(newSeqs, handle, "fasta")
         return "HEGS.fasta"
+
     _get_hegs_to_forty()
+
 
 # Creates a tab delineated file documenting all HEGs codon frequencies.
 def bacteriaCodons(bacteriaGeneDict):
@@ -232,7 +236,7 @@ def bacteriaCodons(bacteriaGeneDict):
     [of.write('%s:%d\t' % (a, hegDict[a])) for a in hegDict]
 
 
-#Driver Code (Bacteria)
+# Driver Code (Bacteria)
 print("Fetching the bacteria's CDS...")
 yab = getFasta(bacteria)
 if 'Not a' in yab and '/' in bacteria:
@@ -251,7 +255,6 @@ try:
 except:
     print("problem :(")
 
-
 # -----------------------------------------------------------
 
 
@@ -264,6 +267,7 @@ except:
 
 7) Outputs all results into a file named 'phage_host_codon_correlation.txt' 
 '''
+
 
 # Reads the bacterial HEG codon frequencies into an array
 def readBactCodonFeqs(bacteriaf):
@@ -306,9 +310,8 @@ def readPhageCodonFeqs(phagef):
             pass
         curr_nums = []
 
-        if len(cs) != 64:               # Ask Dr. Wheeler
-            print('The phage gene %s contains an abnormal codon! The codon %s will not be included in the correlation calculation.'
-                  % (genenames[count], cs[-1][:3]))
+        if len(cs) > 64:  # Ask Dr. Wheeler
+            #print('The phage gene %s contains an abnormal codon! The codon %s will not be included in the correlation calculation.' % (genenames[count], cs[-1][:3]))
             cs.pop()
 
         for s in cs:
@@ -320,13 +323,13 @@ def readPhageCodonFeqs(phagef):
     return genenames, pcodon_nums
 
 
-# Makes the pearson correlation calculations using scipy 
+# Makes the pearson correlation calculations using scipy
 def calculation(bcodons, bname, pcodons, pgenes):
     out = open('phage_host_codon_correlation.txt', 'w')
     out.write('%s\t%s\n' % (bname, phage))
 
     def genes():
-        for gs in range(len(pcodons)-1):
+        for gs in range(len(pcodons) - 1):
             gcorr = stats.pearsonr(bcodons, pcodons[gs])[0]
             gn = pgenes[gs]
             out.write('\n%s\t%f' % (gn, gcorr))
@@ -336,7 +339,7 @@ def calculation(bcodons, bname, pcodons, pgenes):
         pglobcodons = []
         while curr_pos < len(pcodons[1]):
             value = 0
-            for ag in range(len(pcodons)-1):
+            for ag in range(len(pcodons) - 1):
                 value += pcodons[ag][curr_pos]
             pglobcodons.append(value)
             curr_pos += 1
@@ -346,6 +349,7 @@ def calculation(bcodons, bname, pcodons, pgenes):
 
     allgenes()
     genes()
+
 
 bact, bnums = readBactCodonFeqs('bacteriaHEGCodons.txt')
 phage_genes, pnums = readPhageCodonFeqs('phageGeneCodons.txt')
