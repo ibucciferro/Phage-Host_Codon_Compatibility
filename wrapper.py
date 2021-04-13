@@ -80,14 +80,23 @@ def parseLocalFasta(file_path):
     return final_genes
 
 
-def parseHEGFasta(file_path):
+def parseHEGFasta(file_path, file_typ):
     f = open(file_path, 'r')
     fs = f.read().strip().split('>')
     final_genes = {}
-    for i in fs[1:]:
-        si = i.rstrip().split('.')
-        for comp in si:
-            final_genes[si[0] + '.1'] = comp[2:].replace('\n', '')
+    if file_typ:
+        for i in fs[1:]:
+            tempseq = ''
+            si = i.rstrip().split('\n')
+            ssi = si[0].split(' ')
+            for comp in si[1:]:
+                tempseq += comp
+            final_genes[ssi[0][4:]] = tempseq
+    else:
+        for i in fs[1:]:
+            si = i.rstrip().split('.')
+            for comp in si:
+                final_genes[si[0] + '.1'] = comp[2:].replace('\n', '')
     return final_genes
 
 
@@ -131,7 +140,8 @@ def phageCodons(phageGeneDict):
 
 
 # Driver Code (Phage)
-print("Fetching the %s's CDS..." % phage)
+error = False
+print("\nFetching the %s's CDS..." % phage)
 yap = getFasta(phage)
 if 'Not a' in yap and '/' in phage:
     phagedict = parseLocalFasta(phage)
@@ -139,15 +149,20 @@ elif 'Not a' in yap:
     try:
         phagedict = parseLocalFasta(phage)
     except:
+        error = True
         print("Not a valid phage accession or input file")
 else:
     phagedict = parseAccessionFasta(yap)
 
-try:
-    phageCodons(phagedict)
-    print("Success, the phage codon frequencies are within phageGeneCodons.txt")
-except:
-    print("problem :(")
+if not error:
+    try:
+        phageCodons(phagedict)
+        print("Success, the phage codon frequencies are within phageGeneCodons.txt")
+    except:
+        error = True
+        print("\nproblem :(")
+else:
+    print("\nproblem :(")
 
 # --------------------------------------------------------------------------------------------------
 
@@ -166,7 +181,7 @@ except:
 
 
 # Run the Diamond binary using wget functions below
-def _get_hegs(file):
+def _get_hegs(file, file_type):
     os.chdir(cwd)
     currdir = os.listdir()
     if 'diamond' not in currdir:
@@ -188,11 +203,21 @@ def _get_hegs(file):
         df2 = df2.loc[df2.groupby('Subject')["Bit"].idxmax()].reset_index(drop=True)
         items = df2.Query.unique()
         newSeqs = []
-        for seq_record in SeqIO.parse(file, "fasta"):
-            if seq_record.id in items:
-                newSeqs.append(seq_record)
+        if file_type:
+            rev_items = []
+            for item in items:
+                rev_items.append(item[:-1])
+            for seq_record in SeqIO.parse(file, "fasta"):
+                if seq_record.id in rev_items:
+                    newSeqs.append(seq_record)
+        else:
+            for seq_record in SeqIO.parse(file, "fasta"):
+                if seq_record.id in items:
+                    newSeqs.append(seq_record)
+
         if len(newSeqs) < 38:
-            print("WARNING there are fewer than 38 HEGs.")
+            print("\nWARNING there are fewer than 38 HEGs.")
+
         with open("HEGS.fasta", "w") as handle:
             SeqIO.write(newSeqs, handle, "fasta")
         return "HEGS.fasta"
@@ -237,23 +262,29 @@ def bacteriaCodons(bacteriaGeneDict):
 
 
 # Driver Code (Bacteria)
-print("Fetching the bacteria's CDS...")
+print("\nFetching the bacteria's CDS...")
+file_tracker = False
 yab = getFasta(bacteria)
 if 'Not a' in yab and '/' in bacteria:
-    _get_hegs(bacteria)
+    _get_hegs(bacteria, file_type=True)
+    file_tracker = True
 elif 'Not a' in yab:
     try:
-        _get_hegs(bacteria)
+        _get_hegs(bacteria, file_type=True)
+        file_tracker = True
     except:
+        error = True
         print("Not a valid accession or input file format")
 else:
-    _get_hegs(yab)
+    _get_hegs(yab, file_type=False)
 
-try:
-    bacteriaCodons(parseHEGFasta('HEGS.fasta'))
-    print("Success, the bacterial codon frequencies are within bacteriaHEGCodons.txt")
-except:
-    print("problem :(")
+
+if not error:
+    try:
+        bacteriaCodons(parseHEGFasta('HEGS.fasta', file_typ=file_tracker))
+        print("\nSuccess, the bacterial codon frequencies are within bacteriaHEGCodons.txt")
+    except:
+        print("problem :(")
 
 # -----------------------------------------------------------
 
@@ -295,11 +326,14 @@ def readPhageCodonFeqs(phagef):
     pcodon_nums = []
     codons = []
 
+    c = 0
     for r in p_s:
-        if 'NP' in r:
+        if (c % 2) == 0:
             genenames.append(r)
+            c += 1
         else:
             codons.append(r)
+            c += 1
 
     count = 0
     for k in codons:
@@ -355,4 +389,7 @@ bact, bnums = readBactCodonFeqs('bacteriaHEGCodons.txt')
 phage_genes, pnums = readPhageCodonFeqs('phageGeneCodons.txt')
 calculation(bnums, bact, pnums, phage_genes)
 
-print("All results can be found in a file named 'phage_host_codon_correlation.txt':)")
+if not error:
+    print("\nAll results can be found in a file named 'phage_host_codon_correlation.txt' :)")
+else:
+    print("\nThere was an error with one of the input files :(")
