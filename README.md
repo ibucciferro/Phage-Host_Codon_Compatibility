@@ -18,9 +18,9 @@ Repo for Phage-Host Codon Compatibility Pipeline
 
 **Files used for testing:**
     
-    Bacteria -- E. coli K12 strain C3026 (GCF_001559675.1); Accession: CP014272.1
-    Positive Control Phage -- Escherichia phage lambda; Accession: J02459.1
-    Negative Control Phage -- Lactobacillus phage ATCC 8014-B1; Accession: NC_019916.1
+    Bacteria (Bacteria.txt) -- E. coli K12 strain C3026 (GCF_001559675.1); Accession: CP014272.1
+    Positive Control Phage (PCPhage.txt) -- Escherichia phage lambda; Accession: J02459.1
+    Negative Control Phage (NCPhage.txt) -- Emiliania huxleyi virus 99B1; Accession: FN429076.1
 
 
 **Testing**
