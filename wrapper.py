@@ -117,7 +117,7 @@ def phageCodons(phageGeneDict):
         'CGG': 0, 'AGT': 0, 'AGC': 0, 'AGA': 0, 'AGG': 0,
         'GGT': 0, 'GGC': 0, 'GGA': 0, 'GGG': 0}
 
-    of = open("phageCodons.txt", 'w')
+    of = open("phageGeneCodons.txt", 'w')
 
     for gene in phageGeneDict:
         seq = phageGeneDict[gene]
