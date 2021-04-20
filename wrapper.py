@@ -7,18 +7,23 @@ from scipy import stats
 Entrez.email = "ecrum@luc.edu"
 
 # supply the arguments providing the bacterial (-s flag) and phage (-q flag) genomes for the pipeline
-phcc = argparse.ArgumentParser(description='Use GenBank Accession (-a) or Local File (-l)')
+phcc = argparse.ArgumentParser(description='')
 phcc.add_argument('-s', '--subject', nargs='?', default='CP014272.1',
                   help='"-s" flag specifies the GenBank accession or local CDS file of the bacteria to be used.')
 
 phcc.add_argument('-q', '--query', nargs='?', default='J02459.1',
                   help='"-q" flag specifies the GenBank accession or local CDS file of the phage to be used.')
 
+phcc.add_argument('-hegs', '--number_hegs', nargs='?', default='40',
+                  help='"-hegs" flag specifies the number of Highly Expressed Genes to be used.')
+
 args = phcc.parse_args()
 bacteria = vars(args)['subject']
 print("Using %s for the bacterial input" % bacteria)
 phage = vars(args)['query']
 print("Using %s for the phage input" % phage)
+hegs = vars(args)['number_hegs']
+print("Using %s of the Bacteria's HEGs" % hegs)
 
 # Keep track of current directory
 cwd = os.getcwd()
@@ -185,14 +190,14 @@ def _get_hegs(file, file_type):
     os.chdir(cwd)
     currdir = os.listdir()
     if 'diamond' not in currdir:
-        print('\nDownloading DIAMOND:')
+        print('Downloading DIAMOND:')
         os.system('nohup wget http://github.com/bbuchfink/diamond/releases/download/v0.9.24/diamond-linux64.tar.gz')
         os.system('nohup tar xzf diamond-linux64.tar.gz')
-    print('\nRunning DIAMOND:')
+    print('Running DIAMOND:')
     os.system("nohup ./diamond makedb --in protein_database.fasta -d dmndDB")
     os.system('nohup ./diamond blastx -d dmndDB.dmnd -q %s -o matches -f 6 stitle bitscore qtitle -p 1 -k 1' % file)
 
-    def _get_hegs_to_forty():
+    def _get_hegs_to_num():
         df = pandas.read_table("matches", names=["Subject", "Bit", "Query"], skipinitialspace=True)
         df = df.replace('\[.*\]', '', regex=True)
         df["Subject"] = df["Subject"].str.strip()
@@ -222,7 +227,7 @@ def _get_hegs(file, file_type):
             SeqIO.write(newSeqs, handle, "fasta")
         return "HEGS.fasta"
 
-    _get_hegs_to_forty()
+    _get_hegs_to_num()
 
 
 # Creates a tab delineated file documenting all HEGs codon frequencies.
@@ -282,7 +287,7 @@ else:
 if not error:
     try:
         bacteriaCodons(parseHEGFasta('HEGS.fasta', file_typ=file_tracker))
-        print("\nSuccess, the bacterial codon frequencies are within bacteriaHEGCodons.txt")
+        print("Success, the bacterial codon frequencies are within bacteriaHEGCodons.txt\n")
     except:
         print("problem :(")
 
@@ -335,6 +340,7 @@ def readPhageCodonFeqs(phagef):
             codons.append(r)
             c += 1
 
+    abnoraml_codons = {}
     count = 0
     for k in codons:
         cs = k.split('\t')
@@ -344,9 +350,13 @@ def readPhageCodonFeqs(phagef):
             pass
         curr_nums = []
 
-        if len(cs) > 64:  # Ask Dr. Wheeler
-            #print('The phage gene %s contains an abnormal codon! The codon %s will not be included in the correlation calculation.' % (genenames[count], cs[-1][:3]))
-            cs.pop()
+        if len(cs) > 64:
+            print('Ran into an abnoraml codon or two ... see output file for more details.')
+            bcodons = []
+            while len(cs) > 64:
+                bcodons.append(cs[-1])
+                cs.pop()
+            abnoraml_codons[genenames[count]] = bcodons
 
         for s in cs:
             s_s = s.split(':')
@@ -354,13 +364,15 @@ def readPhageCodonFeqs(phagef):
         count += 1
         pcodon_nums.append(curr_nums)
 
-    return genenames, pcodon_nums
+    return genenames, pcodon_nums, abnoraml_codons
 
 
 # Makes the pearson correlation calculations using scipy
-def calculation(bcodons, bname, pcodons, pgenes):
+def calculation(bcodons, bname, pcodons, pgenes, abnormal_cod):
     out = open('phage_host_codon_correlation.txt', 'w')
     out.write('%s\t%s\n' % (bname, phage))
+    if len(abnormal_cod) > 0:
+        out.write('(see end of file for abnormal codon information)\n')
 
     def genes():
         for gs in range(len(pcodons) - 1):
@@ -380,14 +392,23 @@ def calculation(bcodons, bname, pcodons, pgenes):
 
         globcorr = stats.pearsonr(bcodons, pglobcodons)[0]
         out.write('\n%f\n' % globcorr)
+        return pglobcodons
 
-    allgenes()
+    all_phage_codons = allgenes()
     genes()
+    if len(abnormal_cod) > 0:
+        out.write('\n\n\nAbnormal Codon Info:\n')
+        frac_num = str(len(abnormal_cod))
+        frac_denom = str(int(sum(all_phage_codons) + len(abnormal_cod)))
+        out.write('The abnormal codons accounted for %s/%s of all phage codons used in the codon correlation calculation.\n\n' % (frac_num, frac_denom))
+        for key in abnormal_cod:
+            out.write('Abnormal codon(s): %s found in phage gene: %s\n' % (key, abnormal_cod[key]))
+    out.close()
 
 
 bact, bnums = readBactCodonFeqs('bacteriaHEGCodons.txt')
-phage_genes, pnums = readPhageCodonFeqs('phageGeneCodons.txt')
-calculation(bnums, bact, pnums, phage_genes)
+phage_genes, pnums, abcs = readPhageCodonFeqs('phageGeneCodons.txt')
+calculation(bnums, bact, pnums, phage_genes, abcs)
 
 if not error:
     print("\nAll results can be found in a file named 'phage_host_codon_correlation.txt' :)")
